@@ -1,0 +1,28 @@
+# Environment variables
+.env
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go binary
+main
+
+# Test binaries
+*.test
+
+# Coverage reports
+*.out
+
+# IDE files
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
