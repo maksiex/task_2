@@ -13,10 +13,20 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type ContentItem struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type InputMessage struct {
+	Role    string        `json:"role"`
+	Content []ContentItem `json:"content"`
+}
+
 type RequestBody struct {
-	Model           string `json:"model"`
-	Input           string `json:"input"`
-	MaxOutputTokens int    `json:"max_output_tokens"`
+	Model           string         `json:"model"`
+	Input           []InputMessage `json:"input"`
+	MaxOutputTokens int            `json:"max_output_tokens"`
 }
 
 type Response struct {
@@ -33,6 +43,7 @@ func main() {
 	_ = godotenv.Load()
 
 	apiKey := os.Getenv("OPENAI_API_KEY")
+
 	if apiKey == "" {
 		fmt.Println("OPENAI_API_KEY is not set")
 		return
@@ -41,6 +52,7 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter your question: ")
+
 	userInput, err := reader.ReadString('\n')
 	if err != nil {
 		panic(err)
@@ -49,6 +61,7 @@ func main() {
 	userInput = strings.TrimSpace(userInput)
 
 	fmt.Print("Use response constraints? (y/n): ")
+
 	mode, err := reader.ReadString('\n')
 	if err != nil {
 		panic(err)
@@ -56,24 +69,40 @@ func main() {
 
 	mode = strings.TrimSpace(strings.ToLower(mode))
 
-	finalPrompt := userInput
+	systemPrompt := "You are a helpful AI assistant."
 
 	if mode == "y" {
-		finalPrompt = fmt.Sprintf(`
+		systemPrompt = `
 Answer in the following format:
 - Use bullet points.
 - Maximum 80 words total.
 - End the response with the word END.
-
-Question:
-%s
-`, userInput)
+`
 	}
 
 	body := RequestBody{
 		Model:           "gpt-5",
-		Input:           finalPrompt,
 		MaxOutputTokens: 1200,
+		Input: []InputMessage{
+			{
+				Role: "system",
+				Content: []ContentItem{
+					{
+						Type: "input_text",
+						Text: systemPrompt,
+					},
+				},
+			},
+			{
+				Role: "user",
+				Content: []ContentItem{
+					{
+						Type: "input_text",
+						Text: userInput,
+					},
+				},
+			},
+		},
 	}
 
 	jsonData, err := json.Marshal(body)
@@ -119,14 +148,18 @@ Question:
 	}
 
 	for _, output := range response.Output {
+
 		if output.Type != "message" {
 			continue
 		}
 
 		for _, content := range output.Content {
+
 			if content.Type == "output_text" {
+
 				fmt.Println("\nAI Response:")
 				fmt.Println(content.Text)
+
 				return
 			}
 		}
